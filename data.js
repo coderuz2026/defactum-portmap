@@ -1,6 +1,6 @@
 // PortMap — данные (сгенерировано приложением).
 
-window.DATA_VERSION = 1782553833099;
+window.DATA_VERSION = 1782558305637;
 
 window.VLANS = {
   1: "default",
@@ -26,13 +26,13 @@ window.SWITCHES = [
   {
     id: "1-snr-0-29",
     name: "-1 Этаж SNR 0.29 (SNR-S2982G-24T-POE)",
-    location: "Серверная — основной свитч",
+    location: "-1 Этаж (кабинет охрана)",
     ports: [
       { port: 1, vlan: 3, ip: "192.168.100.200", mac: "24-0f-9b-2b-9c-a9", host: "NVR-1" },
       { port: 2, vlan: 3, ip: "192.168.100.201", mac: "80-7c-62-11-a2-8a", host: "NVR-2" },
       { port: 3, vlan: 3, ip: "192.168.100.202", mac: "24-0f-9b-2b-9c-49", host: "NVR-3" },
       { port: 4, vlan: 3, ip: "192.168.100.203", mac: "24-0f-9b-2b-9c-3c", host: "NVR-4" },
-      { port: 5, vlan: 3, ip: "192.168.100.136", mac: "24-0f-9b-70-4a-09", host: "SECURITY", channel: "D4 (Охрана-видеонаблюдения)" },
+      { port: 5, vlan: 3, ip: "192.168.100.136", mac: "24-0f-9b-70-4a-09", host: "Камера (Охрана-видеонаблюдения)", channel: "D4" },
       { port: 6, vlan: 3, ip: "", mac: "00-15-17-21-b5-3d", host: "Internet Camera" },
       { port: 7, vlan: 1, ip: "192.168.0.199", mac: "f4-b5-49-fb-49-f2", host: "АТС \"Битрикс\" (P560)" },
       { port: 8, vlan: 11, ip: "", mac: "6c-44-2a-65-15-50", host: "DeFactum Uzonline Router" },
@@ -56,12 +56,18 @@ window.SWITCHES = [
     ],
   },
   {
-    id: "5etaj",
-    name: "5 этаж",
-    location: "лаборатория",
+    id: "1-snr-0-5",
+    name: "-1 Этаж SNR 0.5 (SNR-S2982G-24T-POE)",
+    location: "-1 Этаж (Коммутационный шкаф шахта)",
     ports: [
-      { port: 1, vlan: 3, ip: "", mac: "", host: "" },
-      { port: 5, vlan: 11, ip: "", mac: "", host: "", off: true },
+      { port: 1, vlan: 3, ip: "192.168.100.11", mac: "d4-e8-53-be-65-24", host: "2 Этаж левый коридор лесница", channel: "D24 (NVR-1)" },
+      { port: 2, vlan: 3, ip: "192.168.100.24", mac: "d4-e8-53-be-65-a0", host: "2 Этаж Холл ожидания слева", channel: "D25 (NVR-1)" },
+      { port: 3, vlan: 3, ip: "192.168.100.18", mac: "d4-e8-53-be-65-9e", host: "2 Этаж правый коридор лесница", channel: "D27 (NVR-1)" },
+      { port: 4, vlan: 3, ip: "192.168.100.23", mac: "d4-e8-53-be-65-a3", host: "1 Этаж левый коридор лесница", channel: "D26 (NVR-1)" },
+      { port: 5, vlan: 3, ip: "192.168.100.4", mac: "2c-a5-9c-fb-99-60", host: "1 Этаж коридор рентгена", channel: "D17 (NVR-1)" },
+      { port: 6, vlan: 3, ip: "192.168.100.8", mac: "2c-a5-9c-fb-99-6c", host: "1 Этаж правый коридор лесница", channel: "D18 (NVR-1)" },
+      { port: 7, vlan: 3, ip: "192.168.100.20", mac: "80-7c-62-b5-21-b5", host: "1 Этаж 4 каб. процедурная", channel: "D19 (NVR-1)" },
+      { port: 8, vlan: 3, ip: "192.168.100.91", mac: "24-0f-9b-70-47-e7", host: "1 Этаж рентген", channel: "D9" },
     ],
   },
 ];
