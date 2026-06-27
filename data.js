@@ -1,6 +1,6 @@
 // PortMap — данные (сгенерировано приложением).
 
-window.DATA_VERSION = 1782531726236;
+window.DATA_VERSION = 1782531907678;
 
 window.VLANS = {
   1: "default",
@@ -51,13 +51,6 @@ window.SWITCHES = [
       { port: 21, vlan: 444, ip: "192.168.1.0", mac: "00-15-17-21-b1-1d", host: "AVOCADO", off: true },
       { port: 22, vlan: 1, ip: "192.168.0.200", mac: "9c-5c-8e-d3-c5-87", host: "BiTrend CRM", off: true },
       { port: 23, vlan: 8, ip: "", mac: "", host: "ALLGOOD", off: true },
-    ],
-  },
-  {
-    id: "eqw",
-    name: "wq",
-    location: "weqwe",
-    ports: [
     ],
   },
 ];
