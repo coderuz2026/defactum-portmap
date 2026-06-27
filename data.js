@@ -1,6 +1,6 @@
 // PortMap — данные (сгенерировано приложением).
 
-window.DATA_VERSION = 1782532655568;
+window.DATA_VERSION = 1782550900849;
 
 window.VLANS = {
   1: "default",
@@ -24,8 +24,8 @@ window.VLANS = {
 
 window.SWITCHES = [
   {
-    id: "internet-camera",
-    name: "Internet Camera",
+    id: "1-snr-0-29",
+    name: "-1 Этаж SNR 0.29",
     location: "Серверная — основной свитч",
     ports: [
       { port: 1, vlan: 3, ip: "192.168.100.200", mac: "24-0f-9b-2b-9c-a9", host: "NVR-1" },
