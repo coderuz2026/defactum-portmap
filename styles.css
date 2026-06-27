@@ -189,7 +189,7 @@ a { color: inherit; text-decoration: none; }
 /* ---------- faceplate ---------- */
 .panel-label { display: flex; align-items: center; gap: 8px; margin: 24px 2px 10px; font-family: var(--mono); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); }
 .panel-label .line { flex: 1; height: 1px; background: var(--line-soft); }
-.faceplate { background: var(--faceplate); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.faceplate { background: var(--faceplate); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; overflow-x: auto; -webkit-overflow-scrolling: touch; display: flex; gap: 18px; align-items: stretch; }
 .ports { display: grid; grid-auto-flow: column; grid-template-rows: 1fr 1fr; gap: 8px; min-width: max-content; }
 .port { width: 108px; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-s); padding: 9px 10px; cursor: pointer; display: flex; flex-direction: column; gap: 5px; transition: border-color .12s, background .12s, transform .05s; }
 .port:hover { border-color: var(--copper-dim); background: var(--surface-2); }
@@ -331,3 +331,25 @@ a { color: inherit; text-decoration: none; }
 .scan-prompt h2 { font-size: 22px; font-weight: 700; margin: 0 0 8px; }
 .scan-prompt p { color: var(--muted); font-size: 14.5px; line-height: 1.6; margin: 0; }
 .brand span.brand, span.brand { cursor: default; }
+
+/* ---------- trunk ports ---------- */
+:root { --trunk: #b794f6; }
+[data-theme="light"] { --trunk: #7c3aed; }
+
+.led.trunk { background: var(--trunk); box-shadow: 0 0 6px color-mix(in srgb, var(--trunk) calc(var(--led-glow) * 100%), transparent); }
+.ledstrip i.trunk { background: var(--trunk); }
+.port.trunk { border-color: color-mix(in srgb, var(--trunk) 55%, var(--line)); }
+.port.trunk:hover { border-color: var(--trunk); }
+.port-num .trunk-ic, .row .phost .trunk-ic { color: var(--trunk); display: inline-flex; flex: none; }
+.dot.trunk { background: var(--trunk); }
+.row.trunk { border-left-color: var(--trunk); }
+.badge.trunk { color: var(--trunk); }
+
+/* separate trunk cluster on the faceplate */
+.trunk-block { display: flex; flex-direction: column; gap: 8px; padding-left: 18px; border-left: 2px dashed color-mix(in srgb, var(--trunk) 60%, transparent); flex: none; }
+.trunk-tag { font-family: var(--mono); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--trunk); display: inline-flex; align-items: center; gap: 5px; }
+
+/* copy-on-click value (no "копи" label) */
+.v.copyable { cursor: pointer; }
+.v.copyable:hover { color: var(--copper); }
+.v.copyable:active { opacity: .7; }

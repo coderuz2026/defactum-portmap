@@ -62,12 +62,13 @@
   const slug = (s) => String(s || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   const vlanName = (v) => state.vlans[String(v)] || "";
   const isCamera = (p) => /camera|камера/i.test(vlanName(p.vlan)) || !!p.channel;
+  const isTrunk = (p) => !!p.trunk;
   function status(p) { if (p.off) return "off"; if (p.host || p.ip || p.mac) return "on"; return "empty"; }
-  function ledClass(p) { if (p.off) return "off"; if (status(p) === "empty") return ""; return isCamera(p) ? "cam" : "on"; }
+  function ledClass(p) { if (p.off) return "off"; if (isTrunk(p)) return "trunk"; if (status(p) === "empty") return ""; return isCamera(p) ? "cam" : "on"; }
   function counts(sw) {
-    let on = 0, off = 0, cam = 0;
-    sw.ports.forEach((p) => { p.off ? off++ : on++; if (!p.off && isCamera(p)) cam++; });
-    return { total: sw.ports.length, on, off, cam, vlans: new Set(sw.ports.map((p) => p.vlan)).size };
+    let on = 0, off = 0, cam = 0, trunk = 0;
+    sw.ports.forEach((p) => { p.off ? off++ : on++; if (!p.off && isCamera(p)) cam++; if (isTrunk(p)) trunk++; });
+    return { total: sw.ports.length, on, off, cam, trunk, vlans: new Set(sw.ports.map((p) => p.vlan)).size };
   }
   const findSwitch = (id) => state.switches.find((s) => s.id === id);
 
@@ -100,10 +101,6 @@
   /* =================== fonts =================== */
   const FONTS = [
     { id: "Onest", g: "Onest:wght@400;500;600;700" },
-    { id: "Inter", g: "Inter:wght@400;500;600;700" },
-    { id: "Manrope", g: "Manrope:wght@400;500;600;700" },
-    { id: "Golos Text", g: "Golos+Text:wght@400;500;600;700" },
-    { id: "Unbounded", g: "Unbounded:wght@400;500;600;700" },
     { id: "system-ui", g: null },
   ];
   function loadGoogleFont(g) {
@@ -202,6 +199,7 @@
       (sw.ports || []).forEach((p) => {
         let seg = `{ port: ${Number(p.port)}, vlan: ${lit(p.vlan)}, ip: ${lit(p.ip || "")}, mac: ${lit(p.mac || "")}, host: ${lit(p.host || "")}`;
         if (p.channel) seg += `, channel: ${lit(p.channel)}`;
+        if (p.trunk) seg += `, trunk: true`;
         if (p.off) seg += `, off: true`;
         L.push("      " + seg + " },");
       });
@@ -240,6 +238,7 @@
     cam: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
     save: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>',
     list: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+    trunk: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17V7M7 7l-3 3M7 7l3 3M17 7v10M17 17l-3-3M17 17l3-3"/></svg>',
   };
 
   /* =================== top bar / edit bar =================== */
@@ -329,32 +328,40 @@
     const c = counts(sw);
     const filtered = q ? sw.ports.filter((p) => (p.port + " " + p.host + " " + p.ip + " " + p.mac + " vlan" + p.vlan + " " + vlanName(p.vlan) + " " + (p.channel || "")).toLowerCase().includes(q)) : sw.ports;
 
-    const tiles = sw.ports.map((p) => {
+    const tileHtml = (p) => {
       const st = status(p), lc = ledClass(p);
       const cls = st === "off" ? "is-off" : st === "empty" ? "is-empty" : "";
+      const ic = isTrunk(p) ? `<span class="trunk-ic">${I.trunk}</span>` : isCamera(p) ? `<span class="cam-ic">${I.cam}</span>` : "";
       return `
-        <button class="port ${cls} ${isCamera(p) && !p.off ? "cam" : ""}" data-port="${p.port}">
-          <div class="port-top"><span class="port-num">${p.port}${isCamera(p) ? `<span class="cam-ic">${I.cam}</span>` : ""}</span><span class="led ${lc}"></span></div>
+        <button class="port ${cls} ${isTrunk(p) ? "trunk" : (isCamera(p) && !p.off ? "cam" : "")}" data-port="${p.port}">
+          <div class="port-top"><span class="port-num">${p.port}${ic}</span><span class="led ${lc}"></span></div>
           <span class="port-host">${esc(p.host || "—")}</span>
           <span class="port-vlan">VLAN ${esc(p.vlan)}</span>
         </button>`;
-    }).join("");
+    };
+    const trunkPorts = sw.ports.filter(isTrunk);
+    const tiles = sw.ports.filter((p) => !isTrunk(p)).map(tileHtml).join("");
+    const trunkTiles = trunkPorts.map(tileHtml).join("");
 
     const rows = filtered.map((p) => {
       const st = status(p), lc = ledClass(p);
+      const vn = vlanName(p.vlan);
       const meta = [];
       if (p.ip) meta.push(`<span class="ip">${esc(p.ip)}</span>`);
       if (p.mac) meta.push(`<span>${esc(p.mac)}</span>`);
       const badges = [
-        `<span class="badge vlan" data-vlan="${esc(p.vlan)}" title="нажми — название VLAN">VLAN ${esc(p.vlan)}</span>`,
+        `<span class="badge vlan">VLAN ${esc(p.vlan)}${vn ? " · " + esc(vn) : ""}</span>`,
+        isTrunk(p) ? `<span class="badge trunk">TRUNK</span>` : "",
         p.channel ? `<span class="badge chan">${esc(p.channel)}</span>` : "",
         p.off ? `<span class="badge off">OFF</span>` : "",
       ].join("");
       const edit = isAdmin() ? `<span class="row-edit"><button class="iconbtn sm" data-edit-port="${p.port}" title="Изменить">${I.pen}</button><button class="iconbtn sm danger" data-del-port="${p.port}" title="Удалить">${I.trash}</button></span>` : "";
+      const accent = lc === "trunk" ? "trunk" : lc === "cam" ? "cam" : st === "off" ? "off" : st === "on" ? "on" : "";
+      const ic = isTrunk(p) ? `<span class="trunk-ic">${I.trunk}</span>` : isCamera(p) ? `<span class="cam-ic">${I.cam}</span>` : "";
       return `
-        <div class="row ${lc === "cam" ? "cam" : st === "off" ? "off" : st === "on" ? "on" : ""} ${st === "empty" ? "is-empty" : ""}" data-row="${p.port}">
+        <div class="row ${accent} ${st === "empty" ? "is-empty" : ""}" data-row="${p.port}">
           <div class="pnum">${p.port}<small>ПОРТ</small></div>
-          <div class="pmain"><div class="phost">${isCamera(p) ? `<span class="cam-ic">${I.cam}</span>` : ""}${esc(p.host || "не подписан")}</div>${meta.length ? `<div class="pmeta">${meta.join("")}</div>` : ""}</div>
+          <div class="pmain"><div class="phost">${ic}${esc(p.host || "не подписан")}</div>${meta.length ? `<div class="pmeta">${meta.join("")}</div>` : ""}</div>
           <div class="pright">${badges}${edit}</div>
         </div>
         <div class="expand" id="exp-${p.port}" style="height:0"></div>`;
@@ -374,10 +381,14 @@
           <div class="stat"><div class="n">${c.total}</div><div class="l">Портов</div></div>
           <div class="stat"><div class="n green">${c.on}</div><div class="l">Активно</div></div>
           ${c.cam ? `<div class="stat"><div class="n" style="color:var(--cam)">${c.cam}</div><div class="l">Камер</div></div>` : ""}
+          ${c.trunk ? `<div class="stat"><div class="n" style="color:var(--trunk)">${c.trunk}</div><div class="l">Транк</div></div>` : ""}
           <div class="stat"><div class="n red">${c.off}</div><div class="l">Выключено</div></div>
         </div>
         <div class="panel-label"><span>Лицевая панель</span><span class="line"></span><span>нажми на порт</span></div>
-        <div class="faceplate"><div class="ports">${tiles || '<span class="muted" style="padding:8px">Портов пока нет</span>'}</div></div>
+        <div class="faceplate">
+          <div class="ports">${tiles || '<span class="muted" style="padding:8px">Портов пока нет</span>'}</div>
+          ${trunkPorts.length ? `<div class="trunk-block"><div class="trunk-tag">${I.trunk} ТРАНК</div><div class="ports">${trunkTiles}</div></div>` : ""}
+        </div>
         <div class="search">${I.search}<input id="q" type="search" placeholder="Поиск порта: хост, IP, MAC, VLAN…" value="${esc(q)}" autocomplete="off"></div>
         <div class="list">${rows || `<div class="empty-state">Портов по запросу «${esc(q)}» нет</div>`}</div>
       </div>`;
@@ -396,15 +407,15 @@
       openPort = port;
       const tile = document.querySelector(`.port[data-port="${port}"]`); if (tile) tile.classList.add("sel");
       if (!exp) { input.value = ""; renderSwitch(id, ""); setTimeout(() => toggle(port), 0); return; }
-      const f = (k, v, cp) => `<div class="field"><div class="k">${k}</div><div class="v">${v ? esc(v) : "—"}${v && cp ? ` <button class="copy" data-copy="${esc(v)}">копи</button>` : ""}</div></div>`;
+      const f = (k, v, cp) => `<div class="field"><div class="k">${k}</div><div class="v ${v && cp ? "copyable" : ""}" ${v && cp ? `data-copy="${esc(v)}" title="Нажмите, чтобы скопировать"` : ""}>${v ? esc(v) : "—"}</div></div>`;
       const vn = vlanName(p.vlan);
       exp.innerHTML = `<div class="expand-inner">
         ${f("IP-адрес", p.ip, true)}${f("MAC-адрес", p.mac, true)}
         ${f("Хост", p.host, false)}${f("VLAN", "VLAN " + p.vlan + (vn ? " · " + vn : ""), false)}
-        ${p.channel ? f("Канал камеры", p.channel, false) : ""}${f("Статус", p.off ? "Выключен" : "Активен", false)}
+        ${p.channel ? f("Канал камеры", p.channel, false) : ""}${isTrunk(p) ? f("Тип", "Транк-порт (аплинк)", false) : ""}${f("Статус", p.off ? "Выключен" : "Активен", false)}
       </div>`;
       exp.style.height = exp.firstElementChild.offsetHeight + 18 + "px";
-      exp.querySelectorAll(".copy").forEach((b) => b.addEventListener("click", (e) => { e.stopPropagation(); copy(b.dataset.copy); }));
+      exp.querySelectorAll(".copyable").forEach((el) => el.addEventListener("click", (e) => { e.stopPropagation(); copy(el.dataset.copy); }));
     }
 
     document.querySelectorAll("[data-port]").forEach((el) => el.addEventListener("click", () => {
@@ -412,7 +423,6 @@
       const row = document.querySelector(`[data-row="${p}"]`); if (row) row.scrollIntoView({ behavior: "smooth", block: "center" });
     }));
     document.querySelectorAll("[data-row]").forEach((el) => el.addEventListener("click", () => toggle(+el.dataset.row)));
-    document.querySelectorAll("[data-vlan]").forEach((el) => el.addEventListener("click", (e) => { e.stopPropagation(); showVlanPopover(el, el.dataset.vlan); }));
 
     bindAll(sw);
   }
@@ -503,10 +513,11 @@
         { key: "mac", label: "MAC-адрес", value: p ? p.mac : "", placeholder: "aa-bb-cc-dd-ee-ff" },
         { key: "host", label: "Имя хоста / устройство", value: p ? p.host : "", placeholder: "NVR-1" },
         { key: "channel", label: "Канал камеры (если камера)", value: p ? p.channel : "", placeholder: "D4" },
+        { key: "trunk", label: "Транк-порт (аплинк)", type: "checkbox", value: p ? !!p.trunk : false },
         { key: "off", label: "Порт выключен (красный)", type: "checkbox", value: p ? !!p.off : false },
       ],
       validate: (v) => { const n = Number(v.port); if (!v.port || !Number.isFinite(n)) return "Введите номер порта"; if (sw.ports.some((x) => Number(x.port) === n && x !== p)) return "Порт " + n + " уже есть"; return null; },
-      onSave: (v) => { const vlan = /^\d+$/.test(String(v.vlan)) ? Number(v.vlan) : (v.vlan || ""); const obj = { port: Number(v.port), vlan, ip: v.ip || "", mac: v.mac || "", host: v.host || "" }; if (v.channel) obj.channel = v.channel; if (v.off) obj.off = true; if (isNew) sw.ports.push(obj); else { Object.keys(p).forEach((k) => delete p[k]); Object.assign(p, obj); } sw.ports.sort((a, b) => a.port - b.port); persist(); route(); },
+      onSave: (v) => { const vlan = /^\d+$/.test(String(v.vlan)) ? Number(v.vlan) : (v.vlan || ""); const obj = { port: Number(v.port), vlan, ip: v.ip || "", mac: v.mac || "", host: v.host || "" }; if (v.channel) obj.channel = v.channel; if (v.trunk) obj.trunk = true; if (v.off) obj.off = true; if (isNew) sw.ports.push(obj); else { Object.keys(p).forEach((k) => delete p[k]); Object.assign(p, obj); } sw.ports.sort((a, b) => a.port - b.port); persist(); route(); },
       onDelete: isNew ? null : () => { sw.ports = sw.ports.filter((x) => x !== p); persist(); route(); },
     });
   }
@@ -573,10 +584,8 @@
     ov.innerHTML = `<div class="modal wide">
       <div class="modal-head"><h3>Настройки</h3><button class="modal-x">✕</button></div>
       <div class="modal-body">
-        <div class="set-sec"><h4>Тема</h4><div class="seg"><button data-set-theme="light" class="${getTheme() === "light" ? "active" : ""}">${I.sun} Светлая</button><button data-set-theme="dark" class="${getTheme() === "dark" ? "active" : ""}">${I.moon} Тёмная</button></div></div>
-        ${isAdmin() ? `<div class="set-sec"><h4>Шрифт</h4><div class="fontgrid">${fontOpts}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-ghost btn-sm filebtn">Загрузить свой шрифт<input type="file" accept=".woff2,.woff,.ttf,.otf" data-font-file></button><span class="note-line">.woff2 / .ttf / .otf</span></div>
-        </div>` : ""}
+        ${!isAdmin() ? `<div class="set-sec"><h4>Тема</h4><div class="seg"><button data-set-theme="light" class="${getTheme() === "light" ? "active" : ""}">${I.sun} Светлая</button><button data-set-theme="dark" class="${getTheme() === "dark" ? "active" : ""}">${I.moon} Тёмная</button></div></div>` : ""}
+        ${isAdmin() ? `<div class="set-sec"><h4>Шрифт</h4><div class="fontgrid">${fontOpts}</div></div>` : ""}
         ${adminHtml}
       </div></div>`;
     document.body.appendChild(ov);
