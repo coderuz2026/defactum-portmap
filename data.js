@@ -1,6 +1,6 @@
 // PortMap — данные (сгенерировано приложением).
 
-window.DATA_VERSION = 1782558305637;
+window.DATA_VERSION = 1782562526843;
 
 window.VLANS = {
   1: "default",
@@ -33,9 +33,9 @@ window.SWITCHES = [
       { port: 3, vlan: 3, ip: "192.168.100.202", mac: "24-0f-9b-2b-9c-49", host: "NVR-3" },
       { port: 4, vlan: 3, ip: "192.168.100.203", mac: "24-0f-9b-2b-9c-3c", host: "NVR-4" },
       { port: 5, vlan: 3, ip: "192.168.100.136", mac: "24-0f-9b-70-4a-09", host: "Камера (Охрана-видеонаблюдения)", channel: "D4" },
-      { port: 6, vlan: 3, ip: "", mac: "00-15-17-21-b5-3d", host: "Internet Camera" },
+      { port: 6, vlan: 3, ip: "", mac: "00-15-17-21-b5-3d", host: "Интернет для камеры", channel: "Интернет от Керио" },
       { port: 7, vlan: 1, ip: "192.168.0.199", mac: "f4-b5-49-fb-49-f2", host: "АТС \"Битрикс\" (P560)" },
-      { port: 8, vlan: 11, ip: "", mac: "6c-44-2a-65-15-50", host: "DeFactum Uzonline Router" },
+      { port: 8, vlan: 11, ip: "", mac: "6c-44-2a-65-15-50", host: "DeFactum Uzonline Router", channel: "HUB TP Link 8Port" },
       { port: 9, vlan: 1, ip: "192.168.1.222", mac: "60-cf-84-81-77-9c", host: "Proxmox" },
       { port: 10, vlan: 5, ip: "", mac: "", host: "Trionika", off: true },
       { port: 11, vlan: 5, ip: "", mac: "", host: "Trionika", off: true },
@@ -67,7 +67,7 @@ window.SWITCHES = [
       { port: 5, vlan: 3, ip: "192.168.100.4", mac: "2c-a5-9c-fb-99-60", host: "1 Этаж коридор рентгена", channel: "D17 (NVR-1)" },
       { port: 6, vlan: 3, ip: "192.168.100.8", mac: "2c-a5-9c-fb-99-6c", host: "1 Этаж правый коридор лесница", channel: "D18 (NVR-1)" },
       { port: 7, vlan: 3, ip: "192.168.100.20", mac: "80-7c-62-b5-21-b5", host: "1 Этаж 4 каб. процедурная", channel: "D19 (NVR-1)" },
-      { port: 8, vlan: 3, ip: "192.168.100.91", mac: "24-0f-9b-70-47-e7", host: "1 Этаж рентген", channel: "D9" },
+      { port: 8, vlan: 3, ip: "192.168.100.91", mac: "24-0f-9b-70-47-e7", host: "1 Этаж 1 каб. рентген", channel: "D9 (NVR-1)" },
     ],
   },
 ];
