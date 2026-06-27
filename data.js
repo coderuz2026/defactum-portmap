@@ -1,6 +1,6 @@
 // PortMap — данные (сгенерировано приложением).
 
-window.DATA_VERSION = 1782551479076;
+window.DATA_VERSION = 1782553833099;
 
 window.VLANS = {
   1: "default",
@@ -52,6 +52,7 @@ window.SWITCHES = [
       { port: 22, vlan: 1, ip: "192.168.0.200", mac: "9c-5c-8e-d3-c5-87", host: "BiTrend CRM", off: true },
       { port: 23, vlan: 8, ip: "", mac: "", host: "ALLGOOD", off: true },
       { port: 24, vlan: 1, ip: "192.168.0.201", mac: "0a-e0-af-a3-15-1e", host: "Kerio Control" },
+      { port: 25, vlan: 1, ip: "10.10.2.2", mac: "", host: "UpLink Rack-2 Switch-1", trunk: true },
     ],
   },
   {
