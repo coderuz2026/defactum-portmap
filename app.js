@@ -19,30 +19,41 @@
 
   /* =================== state =================== */
   const deep = (x) => JSON.parse(JSON.stringify(x));
-  function loadState() {
-    let baseV = window.VLANS || {};
-    try {
-      const saved = localStorage.getItem(STORE_KEY);
-      if (saved) {
-        const o = JSON.parse(saved);
-        state.switches = o.switches || [];
-        state.vlans = o.vlans || deep(baseV);
-        state.dirty = true; return;
-      }
-    } catch (e) {}
-    state.switches = deep(window.SWITCHES || []);
-    state.vlans = deep(baseV);
-    state.dirty = false;
-  }
-  function persist() {
-    state.dirty = true; state.synced = false;
-    try { localStorage.setItem(STORE_KEY, JSON.stringify({ switches: state.switches, vlans: state.vlans })); } catch (e) {}
-  }
-  function resetToFile() {
-    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+  function useFile() {
     state.switches = deep(window.SWITCHES || []);
     state.vlans = deep(window.VLANS || {});
     state.dirty = false; state.synced = false;
+    state.baseVersion = Number(window.DATA_VERSION || 0);
+  }
+  function loadState() {
+    const fileVer = Number(window.DATA_VERSION || 0);
+    let draft = null;
+    try { draft = JSON.parse(localStorage.getItem(STORE_KEY) || "null"); } catch (e) {}
+    if (draft && draft.switches) {
+      const dVer = Number(draft.version || 0);
+      // Если в репозитории опубликована более свежая версия и локально нет
+      // несохранённых правок — берём файл (так ПК подхватит правки с телефона).
+      if (fileVer > dVer && !draft.dirty) { useFile(); try { localStorage.removeItem(STORE_KEY); } catch (e) {} return; }
+      state.switches = draft.switches;
+      state.vlans = draft.vlans || deep(window.VLANS || {});
+      state.dirty = !!draft.dirty;
+      state.synced = !draft.dirty;
+      state.baseVersion = dVer || fileVer;
+      return;
+    }
+    useFile();
+  }
+  function persist() {
+    state.dirty = true; state.synced = false;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ version: state.baseVersion || 0, switches: state.switches, vlans: state.vlans, dirty: true })); } catch (e) {}
+  }
+  function markSynced(ver) {
+    state.baseVersion = ver; state.dirty = false; state.synced = true;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ version: ver, switches: state.switches, vlans: state.vlans, dirty: false })); } catch (e) {}
+  }
+  function resetToFile() {
+    try { localStorage.removeItem(STORE_KEY); } catch (e) {}
+    useFile();
   }
 
   /* =================== helpers =================== */
@@ -146,14 +157,14 @@
       let sha;
       const g = await fetch(api + "?ref=" + encodeURIComponent(branch), { headers });
       if (g.ok) sha = (await g.json()).sha;
+      const ver = Date.now();
       const put = await fetch(api, {
         method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, headers),
-        body: JSON.stringify({ message: "Обновление данных через PortMap", content: b64(serializeDataJs()), branch, sha }),
+        body: JSON.stringify({ message: "Обновление данных через PortMap", content: b64(serializeDataJs(ver)), branch, sha }),
       });
       if (!put.ok) { const e = await put.json().catch(() => ({})); throw new Error(e.message || ("HTTP " + put.status)); }
-      state.dirty = false; state.synced = true;
-      try { localStorage.setItem(STORE_KEY, JSON.stringify({ switches: state.switches, vlans: state.vlans })); } catch (e) {}
-      toast("Сохранено на GitHub ✓ сайт обновится через ~1 мин");
+      markSynced(ver);
+      toast("Сохранено на GitHub ✓ другие устройства увидят через ~1 мин");
       route();
     } catch (err) { toast("GitHub: " + err.message); }
   }
@@ -168,8 +179,9 @@
 
   /* =================== export data.js =================== */
   function lit(v) { return (typeof v === "number" && isFinite(v)) ? String(v) : JSON.stringify(v == null ? "" : String(v)); }
-  function serializeDataJs() {
-    const L = ["// PortMap — данные (сгенерировано приложением).", "", "window.VLANS = {"];
+  function serializeDataJs(ver) {
+    ver = ver || Date.now();
+    const L = ["// PortMap — данные (сгенерировано приложением).", "", "window.DATA_VERSION = " + ver + ";", "", "window.VLANS = {"];
     Object.keys(state.vlans).sort((a, b) => Number(a) - Number(b)).forEach((k) => {
       L.push("  " + (/^\d+$/.test(k) ? k : JSON.stringify(k)) + ": " + lit(state.vlans[k]) + ",");
     });
@@ -193,12 +205,15 @@
     return L.join("\n");
   }
   function downloadData() {
-    const blob = new Blob([serializeDataJs()], { type: "text/javascript" });
+    const ver = Date.now();
+    const blob = new Blob([serializeDataJs(ver)], { type: "text/javascript" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob); a.download = "data.js";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    toast("data.js скачан — залейте его в репозиторий");
+    markSynced(ver);
+    toast("data.js скачан — залейте его в репозиторий, чтобы изменения увидели все устройства");
+    route();
   }
   function resetData() { if (!confirm("Сбросить локальные изменения к версии из файла?")) return; resetToFile(); route(); toast("Сброшено к версии из файла"); }
 
@@ -236,13 +251,16 @@
   function editbar() {
     if (!isAdmin()) return "";
     const tag = state.dirty
-      ? `<span class="tag"><span class="dirty-dot"></span>Есть несохранённые изменения</span>`
-      : state.synced ? `<span class="tag">✓ Синхронизировано с GitHub</span>`
+      ? `<span class="tag"><span class="dirty-dot"></span>Изменения не опубликованы</span>`
+      : state.synced ? `<span class="tag">✓ Опубликовано</span>`
       : `<span class="tag">Админ-режим</span>`;
+    const publishBtn = ghReady()
+      ? `<button class="btn btn-primary btn-sm" data-gh-save>${I.save} Опубликовать на GitHub</button>`
+      : (state.dirty ? `<button class="btn btn-primary btn-sm" data-settings>${I.gear} Настроить GitHub</button>` : "");
     return `<div class="editbar"><div class="editbar-in">
         ${tag}<span class="spacer"></span>
         <button class="btn btn-ghost btn-sm" data-vlan-ref>${I.list} VLAN</button>
-        ${ghReady() ? `<button class="btn btn-primary btn-sm" data-gh-save>${I.save} На GitHub</button>` : ""}
+        ${publishBtn}
         <button class="btn btn-ghost btn-sm" data-dl>Скачать data.js</button>
         ${state.dirty ? `<button class="btn btn-ghost btn-sm" data-reset>Сбросить</button>` : ""}
       </div></div>`;
@@ -423,7 +441,7 @@
       <div class="wrap">
         <div class="back" data-go="#/">${I.back} Все свитчи</div>
         <div class="section-head"><span class="eyebrow">Только просмотр · для печати</span><h1>QR-коды</h1></div>
-        <div class="qr-note">Распечатай лист и наклей каждый QR на свой свитч. Кто сканирует — попадает только на <b>просмотр</b> карты этого свитча (без редактирования).<br>Адрес берётся автоматически: <code>${esc(base)}</code></div>
+        <div class="qr-note">Распечатай лист и наклей каждый QR на свой свитч. Кто сканирует — попадает только на <b>просмотр</b> карты этого свитча (без редактирования).<br>Новый свитч откроется по QR на других устройствах только после публикации (кнопка «Опубликовать на GitHub» или загрузка <code>data.js</code> в репозиторий).<br>Адрес берётся автоматически: <code>${esc(base)}</code></div>
         <div class="qr-grid">${cards}</div>
       </div>`;
     document.getElementById("printBtn").addEventListener("click", () => window.print());
@@ -459,7 +477,7 @@
         { key: "id", label: "ID для ссылки и QR (латиницей)", value: sw ? sw.id : "", required: true, hint: "Без пробелов. От него зависит адрес QR." },
       ],
       validate: (v) => { if (!v.name) return "Введите название"; const id = slug(v.id) || slug(v.name); if (!id) return "Введите ID латиницей"; if (state.switches.some((s) => s.id === id && s !== sw)) return "Такой ID уже есть"; return null; },
-      onSave: (v) => { const id = slug(v.id) || slug(v.name); if (isNew) { state.switches.push({ id, name: v.name, location: v.location, ports: [] }); persist(); location.hash = "#/sw/" + id; } else { const old = sw.id; sw.id = id; sw.name = v.name; sw.location = v.location; persist(); if (old !== id) location.hash = "#/sw/" + id; else route(); } },
+      onSave: (v) => { const id = slug(v.id) || slug(v.name); if (isNew) { state.switches.push({ id, name: v.name, location: v.location, ports: [] }); persist(); toast("Свитч добавлен. Опубликуй на GitHub, чтобы QR заработал на других устройствах."); location.hash = "#/sw/" + id; } else { const old = sw.id; sw.id = id; sw.name = v.name; sw.location = v.location; persist(); if (old !== id) location.hash = "#/sw/" + id; else route(); } },
       onDelete: isNew ? null : () => { state.switches = state.switches.filter((s) => s !== sw); persist(); location.hash = "#/"; },
     });
   }
