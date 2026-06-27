@@ -574,9 +574,9 @@
       <div class="modal-head"><h3>Настройки</h3><button class="modal-x">✕</button></div>
       <div class="modal-body">
         <div class="set-sec"><h4>Тема</h4><div class="seg"><button data-set-theme="light" class="${getTheme() === "light" ? "active" : ""}">${I.sun} Светлая</button><button data-set-theme="dark" class="${getTheme() === "dark" ? "active" : ""}">${I.moon} Тёмная</button></div></div>
-        <div class="set-sec"><h4>Шрифт</h4><div class="fontgrid">${fontOpts}</div>
+        ${isAdmin() ? `<div class="set-sec"><h4>Шрифт</h4><div class="fontgrid">${fontOpts}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn btn-ghost btn-sm filebtn">Загрузить свой шрифт<input type="file" accept=".woff2,.woff,.ttf,.otf" data-font-file></button><span class="note-line">.woff2 / .ttf / .otf</span></div>
-        </div>
+        </div>` : ""}
         ${adminHtml}
       </div></div>`;
     document.body.appendChild(ov);
