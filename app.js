@@ -152,11 +152,18 @@
     const branch = c.branch || "main";
     const api = `https://api.github.com/repos/${c.owner}/${c.repo}/contents/${path.split("/").map(encodeURIComponent).join("/")}`;
     const headers = { Authorization: "Bearer " + c.token, Accept: "application/vnd.github+json" };
-    toast("Сохраняю на GitHub…");
+    toast("Проверяю GitHub…");
     try {
-      let sha;
+      let sha, remoteVer = 0;
       const g = await fetch(api + "?ref=" + encodeURIComponent(branch), { headers });
-      if (g.ok) sha = (await g.json()).sha;
+      if (g.ok) {
+        const j = await g.json();
+        sha = j.sha;
+        try { const m = atob((j.content || "").replace(/\s/g, "")).match(/DATA_VERSION\s*=\s*(\d+)/); if (m) remoteVer = Number(m[1]); } catch (e) {}
+      }
+      if (remoteVer && state.baseVersion && remoteVer > state.baseVersion) {
+        if (!confirm("На GitHub уже есть более свежие данные — похоже, их опубликовали с другого устройства. Перезаписать их этой версией?")) { toast("Публикация отменена"); return; }
+      }
       const ver = Date.now();
       const put = await fetch(api, {
         method: "PUT", headers: Object.assign({ "Content-Type": "application/json" }, headers),
