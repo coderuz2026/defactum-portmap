@@ -243,12 +243,14 @@
   };
 
   /* =================== top bar / edit bar =================== */
-  function topbar(extra) {
+  function topbar(extra, lock) {
     const themeBtn = `<button class="iconbtn" data-theme-toggle title="${getTheme() === "light" ? "Тёмная тема" : "Светлая тема"}">${getTheme() === "light" ? I.moon : I.sun}</button>`;
     const gearBtn = `<button class="iconbtn" data-settings title="Настройки">${I.gear}</button>`;
+    const brandInner = `<span class="brand-glyph"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>PortMap</b><span class="sub">карта портов</span>`;
+    const brand = lock ? `<span class="brand">${brandInner}</span>` : `<a class="brand" href="#/">${brandInner}</a>`;
     return `
       <div class="topbar"><div class="topbar-inner">
-        <a class="brand" href="#/"><span class="brand-glyph"><i></i><i></i><i></i><i></i><i></i><i></i></span><b>PortMap</b><span class="sub">карта портов</span></a>
+        ${brand}
         <span class="spacer"></span>
         ${extra || ""}
         ${themeBtn}${gearBtn}
@@ -358,14 +360,15 @@
         <div class="expand" id="exp-${p.port}" style="height:0"></div>`;
     }).join("");
 
-    const actions = isAdmin()
+    const admin = isAdmin();
+    const actions = admin
       ? `<button class="btn btn-ghost btn-sm" data-edit-switch="${esc(sw.id)}">${I.pen} Изменить</button><button class="btn btn-primary btn-sm" data-add-port>${I.plus} Порт</button>`
-      : `<a class="btn btn-ghost" href="#/qr">${I.qr} QR-коды</a>`;
+      : "";
 
     app.innerHTML = `
-      ${topbar(isAdmin() ? "" : `<a class="btn btn-ghost" href="#/qr">${I.qr} QR-коды</a>`)}
+      ${topbar("", !admin)}
       <div class="wrap">
-        <div class="back" data-go="#/">${I.back} Все свитчи</div>
+        ${admin ? `<div class="back" data-go="#/">${I.back} Все свитчи</div>` : ""}
         <div class="detail-head"><div><span class="eyebrow">Свитч${sw.location ? " · " + esc(sw.location) : ""}</span><h1>${esc(sw.name)}</h1></div><div class="detail-actions">${actions}</div></div>
         <div class="stats">
           <div class="stat"><div class="n">${c.total}</div><div class="l">Портов</div></div>
@@ -616,13 +619,44 @@
     }
   }
 
+  /* =================== guest kiosk lock =================== */
+  let lastSwitchId = null;
+  function renderScanPrompt() {
+    app.innerHTML = `
+      ${topbar("", true)}
+      <div class="wrap">
+        <div class="scan-prompt">
+          <div class="scan-ic">${I.qr}</div>
+          <h2>Отсканируйте QR-код</h2>
+          <p>Наведите камеру на QR-код, наклеенный на свитче, чтобы увидеть его карту портов.</p>
+        </div>
+      </div>`;
+    bindAll();
+  }
+
   function route() {
     closePopover();
     const h = location.hash.replace(/^#\/?/, "");
     const parts = h.split("/").filter(Boolean);
     window.scrollTo(0, 0);
+
+    // Гость (не админ): доступен только один свитч — тот, чей QR отсканировали.
+    if (!isAdmin()) {
+      if ((parts[0] === "sw" || parts[0] === "k") && parts[1]) {
+        const id = decodeURIComponent(parts[1]);
+        if (findSwitch(id)) { lastSwitchId = id; if (location.hash !== "#/sw/" + id) history.replaceState(null, "", "#/sw/" + id); return renderSwitch(id, ""); }
+      }
+      // Любая попытка уйти на главную / список / QR — возвращаем на свой свитч.
+      if (lastSwitchId && findSwitch(lastSwitchId)) {
+        if (location.hash !== "#/sw/" + lastSwitchId) history.replaceState(null, "", "#/sw/" + lastSwitchId);
+        return renderSwitch(lastSwitchId, "");
+      }
+      return renderScanPrompt();
+    }
+
+    // Админ: полный доступ.
     if (parts[0] === "qr") return renderQR();
-    if (parts[0] === "sw" && parts[1]) return renderSwitch(decodeURIComponent(parts[1]), "");
+    if ((parts[0] === "sw" || parts[0] === "k") && parts[1]) return renderSwitch(decodeURIComponent(parts[1]), "");
     return renderHome("");
   }
 
