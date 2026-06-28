@@ -1,6 +1,6 @@
 // PortMap — данные (сгенерировано приложением).
 
-window.DATA_VERSION = 1782562526843;
+window.DATA_VERSION = 1782634806580;
 
 window.VLANS = {
   1: "default",
@@ -42,8 +42,8 @@ window.SWITCHES = [
       { port: 12, vlan: 3, ip: "192.168.100.130", mac: "e8-a0-ed-87-9c-09", host: "KUHNYA-2", channel: "D20" },
       { port: 13, vlan: 3, ip: "92.168.100.138", mac: "40-ac-bf-8f-24-07", host: "PODVAL SKLAD", channel: "D19" },
       { port: 14, vlan: 3, ip: "", mac: "", host: "", off: true },
-      { port: 15, vlan: 2, ip: "", mac: "f4-1d-6b-78-dd-ca", host: "Fitnes" },
-      { port: 16, vlan: 10, ip: "", mac: "20-3d-b2-46-b2-a7", host: "OMEGA-SIP (11 этаж)" },
+      { port: 15, vlan: 2, ip: "", mac: "f4-1d-6b-78-dd-ca", host: "FLOW Интернет (12-этаж)" },
+      { port: 16, vlan: 10, ip: "", mac: "20-3d-b2-46-b2-a7", host: "UnionStaff Интернет (11 этаж)", channel: "OMEGA-SIP" },
       { port: 17, vlan: 7, ip: "", mac: "", host: "KUNDALIK-3", off: true },
       { port: 18, vlan: 9, ip: "", mac: "", host: "OMEGA", off: true },
       { port: 19, vlan: 333, ip: "", mac: "", host: "KUNDALIK-2A", off: true },
